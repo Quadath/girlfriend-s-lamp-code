@@ -21,12 +21,22 @@ const int starButton = 22;
 
 const int arrowUp = 24;
 const int arrowDown = 82;
+const int arrowRight = 90;
+const int arrowLeft = 8;
 
 static float r = 200;
 static float g = 0;
 static float b = 100;
 
 static int bright = 100;
+
+
+
+
+
+//RAINBOW
+static float rainbowSpeed = 3;
+
 
 int mode = 1;
 
@@ -67,6 +77,7 @@ void loop() {
     strip.setBrightness(bright);
     
     if (mode == 1) { 
+
        switch (IrReceiver.decodedIRData.command) {
         case button1: {
           r += 2;
@@ -95,28 +106,48 @@ void loop() {
             if (b < 0) b = 0;
         }
       }
-      for (int i = 0; i < NUMLEDS; i++) {
-        strip.set(i, mRGB(r, g, b));
+    }
+    else if (mode == 2) {
+      switch (IrReceiver.decodedIRData.command) {
+        case arrowLeft: {
+          rainbowSpeed -= .1f;
+          if (rainbowSpeed < 0) {
+            rainbowSpeed = 0;
+          }
+        } break;
+        case arrowRight: {
+          rainbowSpeed += .1f;
+        }
       }
-    } 
+    }
+    
     IrReceiver.resume();
   }
   if (IrReceiver.isIdle()) {
-   
-    if (mode == 2) {
-      rainbow();
-      switch (IrReceiver.decodedIRData.command) {
-        
-      }
+    switch(mode) {
+      case 1: {
+        strip.fill(0, NUMLEDS, mRGB(r, g, b));
+      } break;
+      case 2: {
+        rainbow();
+      } break;
     }
   }
   strip.show();
   delay(16);
 }
+
 void rainbow() {
-  static byte counter = 0;
+  static float counter = 0;
   for (int i = 0; i < NUMLEDS; i++) {
-    strip.set(i, mWheel8(counter + i * 255 / NUMLEDS));   // counter смещает цвет
+    strip.set(i, mWheel8((int)counter + i * 255 / NUMLEDS));   // counter смещает цвет
   }
-  counter += 3;   // counter имеет тип byte и при достижении 255 сбросится в 0
+  counter += rainbowSpeed;   // counter имеет тип byte и при достижении 255 сбросится в 0
+  if (counter > 255) {
+    counter = 0;
+  }
+  Serial.print(counter);
+  Serial.print("   ");
+  Serial.print(rainbowSpeed);
+  Serial.println();
 }
