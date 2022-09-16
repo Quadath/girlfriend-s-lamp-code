@@ -19,9 +19,14 @@ const int button9 = 9;
 
 const int starButton = 22;
 
-static float r = 0;
+const int arrowUp = 24;
+const int arrowDown = 82;
+
+static float r = 200;
 static float g = 0;
-static float b = 1;
+static float b = 100;
+
+static int bright = 100;
 
 int mode = 1;
 
@@ -29,34 +34,37 @@ microLED<NUMLEDS, STRIP_PIN, MLED_NO_CLOCK, LED_WS2818, ORDER_GRB, CLI_AVER> str
 void setup() {
   Serial.begin(9600);
   IrReceiver.begin(3, ENABLE_LED_FEEDBACK);
-
-  
-  strip.setBrightness(255);
-
+  strip.setBrightness(bright);
   for (int i = 0; i < NUMLEDS; i++) {
     strip.set(i, mRGB(r, g, b));
   }
   strip.show();
 }
 
-float lerp(float a, float b, float x)
-{
-  return a + x * (b - a);
-}
-
 void loop() {
-
   if (IrReceiver.decode()) {
     Serial.println(IrReceiver.decodedIRData.command);
-
     switch (IrReceiver.decodedIRData.command) {
       case starButton: {
         mode += 1;
         if (mode == 3) {
           mode = 1;
         }
-      }
+      } break;
+      case arrowUp: {
+        bright++;
+        if (bright > 255) {
+          bright = 255;
+        }
+      } break;
+      case arrowDown: {
+        bright--;
+        if (bright < 0) {
+          bright = 0;
+        }
+      } break;
     }
+    strip.setBrightness(bright);
     
     if (mode == 1) { 
        switch (IrReceiver.decodedIRData.command) {
