@@ -3,6 +3,7 @@
 #define NUMLEDS 60
 
 #include <microLED.h>
+#include <FastLEDsupport.h>    // нужна для шума
 #include <IRremote.hpp>
 
 
@@ -30,7 +31,7 @@ static float g = 0;
 static float b = 100;
 
 static int bright = 100;
-static bool symmetry = false;
+static bool symmetry = true;
 
 //GRADIENT
 static float gradR = 0;
@@ -45,6 +46,15 @@ static int gradColor = 1;
 
 //RAINBOW
 static float rainbowSpeed = 3;
+
+//RUNNING DOTS
+
+static float dotsR = 0;
+static float dotsG = 200;
+static float dotsB = 30;
+
+static int dotSpeed = 100;
+
 
 
 int mode = 1;
@@ -67,7 +77,7 @@ void loop() {
     switch (IrReceiver.decodedIRData.command) {
       case starButton: {
         mode += 1;
-        if (mode == 4) {
+        if (mode == 5) {
           mode = 1;
         }
       } break;
@@ -92,29 +102,29 @@ void loop() {
     if (mode == 1) { 
        switch (IrReceiver.decodedIRData.command) {
         case button1: {
-          r += 2;
+          r += 5;
           if (r > 255) r = 255;
         } break;
         case button4: {
-            r -= 2;
+            r -= 5;
             if (r < 0) r = 0;
           } break;
   
         case button2: {
-            g += 2;
+            g += 5;
             if (g > 255) g = 255;
           } break;
         case button5: {
-            g -= 2;
+            g -= 5;
             if (g < 0) g = 0;
           } break;
   
         case button3: {
-            b += 2;
+            b += 5;
             if (b > 255) b = 255;
           } break;
         case button6: {
-            b -= 2;
+            b -= 5;
             if (b < 0) b = 0;
         }
       }
@@ -196,6 +206,44 @@ void loop() {
         }
       }
     }
+    else if (mode == 4) {
+      switch (IrReceiver.decodedIRData.command) {
+        case button1: {
+          dotsR += 5;
+          if (dotsR > 255) dotsR = 255;
+        } break;
+        case button4: {
+            dotsR -= 5;
+            if (dotsR < 0) dotsR = 0;
+          } break;
+  
+        case button2: {
+            dotsG += 5;
+            if (dotsG > 255) dotsG = 255;
+          } break;
+        case button5: {
+            dotsG -= 5;
+            if (dotsG < 0) dotsG = 0;
+          } break;
+  
+        case button3: {
+            dotsB += 5;
+            if (dotsB > 255) dotsB = 255;
+          } break;
+        case button6: {
+            dotsB -= 5;
+            if (dotsB < 0) dotsB = 0;
+        } break;
+        case arrowLeft: {
+          dotSpeed += 10;
+          if (dotSpeed > 3000) dotSpeed = 3000;
+        } break;
+        case arrowRight: {
+          dotSpeed -= 10;
+          if (dotSpeed < 10) dotSpeed = 10;
+        }
+      }
+    }
     
     IrReceiver.resume();
   }
@@ -216,6 +264,9 @@ void loop() {
       case 3: {
         rainbow();
       } break;
+      case 4: {
+        runningDots();
+      }
       
     }
   }
@@ -232,4 +283,16 @@ void rainbow() {
   if (counter > 255) {
     counter = 0;
   }
+}
+
+void runningDots() {
+  static byte counter = 0;
+  // перемотка буфера со сдвигом (иллюзия движения пикселей)
+  for (int i = 0; i < NUMLEDS - 1; i++) strip.leds[i] = strip.leds[i + 1];
+
+  // каждый третий вызов - последний пиксель красным, иначе чёрным
+  if (counter % 3 == 0) strip.leds[NUMLEDS - 1] = mRGB(dotsR, dotsG, dotsB);
+  else strip.leds[NUMLEDS - 1] = mBlack;
+  counter++;
+  delay(dotSpeed);   // дополнительная задержка
 }
