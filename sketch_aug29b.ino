@@ -26,12 +26,13 @@ const int arrowDown = 82;
 const int arrowRight = 90;
 const int arrowLeft = 8;
 
+static bool ON = true;
+
 static float r = 200;
 static float g = 0;
 static float b = 100;
 
 static int bright = 100;
-static bool symmetry = true;
 
 //GRADIENT
 static float gradR = 0;
@@ -55,6 +56,7 @@ static float dotsB = 30;
 
 static int dotSpeed = 100;
 
+//PULSE
 
 
 int mode = 1;
@@ -77,8 +79,9 @@ void loop() {
     switch (IrReceiver.decodedIRData.command) {
       case starButton: {
         mode += 1;
-        if (mode == 5) {
+        if (mode == 6) {
           mode = 1;
+          strip.setBrightness(bright);
         }
       } break;
       case arrowUp: {
@@ -94,7 +97,7 @@ void loop() {
         }
       } break;
       case button0: {
-       symmetry = !symmetry;   
+       ON = !ON;
       }
     }
     strip.setBrightness(bright);
@@ -248,28 +251,32 @@ void loop() {
     IrReceiver.resume();
   }
   if (IrReceiver.isIdle()) {
-    switch(mode) {
-      case 1: {
-        strip.fill(0, NUMLEDS, mRGB(r, g, b));
-      } break;
-      case 2: {
-        if (symmetry) {
-          Serial.println(_gradR);
-          strip.fillGradient(0, NUMLEDS / 2, mRGB(gradR, gradG, gradB), mRGB(_gradR, _gradG, _gradB));
-          strip.fillGradient(NUMLEDS / 2, NUMLEDS, mRGB(_gradR, _gradG, _gradB), mRGB(gradR, gradG, gradB));
-        } else {
-          strip.fillGradient(0, NUMLEDS, mRGB(gradR, gradG, gradB), mRGB(_gradR, _gradG, _gradB)); 
+    if(ON) {
+      strip.setBrightness(bright);
+      switch(mode) {
+        case 1: {
+          strip.fill(0, NUMLEDS, mRGB(r, g, b));
+        } break;
+        case 2: {
+            strip.fillGradient(0, NUMLEDS / 2, mRGB(gradR, gradG, gradB), mRGB(_gradR, _gradG, _gradB));
+            strip.fillGradient(NUMLEDS / 2, NUMLEDS, mRGB(_gradR, _gradG, _gradB), mRGB(gradR, gradG, gradB));
+        } break;
+        case 3: {
+          rainbow();
+        } break;
+        case 4: {
+          runningDots();
+        } break;
+        case 5: {
+          colorCycle();
+          breathing();
         }
-      } break;
-      case 3: {
-        rainbow();
-      } break;
-      case 4: {
-        runningDots();
       }
-      
+    } else {
+      strip.setBrightness(0);
     }
   }
+    
   strip.show();
   delay(16);
 }
@@ -295,4 +302,24 @@ void runningDots() {
   else strip.leds[NUMLEDS - 1] = mBlack;
   counter++;
   delay(dotSpeed);   // дополнительная задержка
+}
+void colorCycle() {
+  static byte counter = 0;
+  strip.fill(mWheel8(counter));
+  counter += 2;
+}
+void breathing() {
+  static int dir = 1;
+  static int bright = 0;
+  bright += dir * 10;    // 5 - множитель скорости изменения
+
+  if (bright > 255) {
+    bright = 255;
+    dir = -1;
+  }
+  if (bright < 30) {
+    bright = 30;
+    dir = 1;
+  }
+  strip.setBrightness(bright);
 }
