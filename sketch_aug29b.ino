@@ -6,7 +6,6 @@
 #include <FastLEDsupport.h>    // нужна для шума
 #include <IRremote.hpp>
 
-
 const int button0 = 25;
 const int button1 = 69;
 const int button2 = 70;
@@ -57,7 +56,11 @@ static float dotsB = 30;
 static int dotSpeed = 100;
 
 //PULSE
+static float pulseSpeed = 1;
 
+//BREATHING
+static bool isBreathing = false;
+static float breathingSpeed = 1;
 
 int mode = 1;
 
@@ -69,10 +72,8 @@ void setup() {
   for (int i = 0; i < NUMLEDS; i++) {
     strip.set(i, mRGB(r, g, b));
   }
-
   strip.show();
 }
-
 void loop() {
   if (IrReceiver.decode()) {
     Serial.println(IrReceiver.decodedIRData.command);
@@ -96,12 +97,27 @@ void loop() {
           bright = 0;
         }
       } break;
+      
+      case button7: {
+        breathingSpeed -= 0.05f;
+        if (breathingSpeed < 0) {
+          breathingSpeed = 0;
+        }
+      } break;
+      case button8: {
+        isBreathing = !isBreathing;
+      } break;
+      case button9: {
+        breathingSpeed += 0.05f;
+        if (breathingSpeed > 5) {
+          breathingSpeed = 5;
+        }
+      } break;
       case button0: {
        ON = !ON;
       }
     }
     strip.setBrightness(bright);
-    
     if (mode == 1) { 
        switch (IrReceiver.decodedIRData.command) {
         case button1: {
@@ -237,46 +253,61 @@ void loop() {
             dotsB -= 5;
             if (dotsB < 0) dotsB = 0;
         } break;
-        case arrowLeft: {
+        case arrowRight: {
           dotSpeed += 10;
           if (dotSpeed > 3000) dotSpeed = 3000;
         } break;
-        case arrowRight: {
+        case arrowLeft: {
           dotSpeed -= 10;
           if (dotSpeed < 10) dotSpeed = 10;
         }
       }
     }
-    
+    else if(mode == 5) {
+       switch (IrReceiver.decodedIRData.command) { 
+         case arrowRight: {
+            pulseSpeed += 0.05f;
+            if (pulseSpeed > 3) pulseSpeed = 3;
+          } break;
+          case arrowLeft: {
+            pulseSpeed -= 0.05f;
+            if (pulseSpeed < 0.1f) pulseSpeed = 0.1f;
+          }
+       }
+    }
     IrReceiver.resume();
   }
   if (IrReceiver.isIdle()) {
     if(ON) {
-      strip.setBrightness(bright);
+      if (mode != 6)
+        strip.setBrightness(bright);
       switch(mode) {
         case 1: {
           strip.fill(0, NUMLEDS, mRGB(r, g, b));
+          if (isBreathing) breathing(breathingSpeed);
         } break;
         case 2: {
             strip.fillGradient(0, NUMLEDS / 2, mRGB(gradR, gradG, gradB), mRGB(_gradR, _gradG, _gradB));
             strip.fillGradient(NUMLEDS / 2, NUMLEDS, mRGB(_gradR, _gradG, _gradB), mRGB(gradR, gradG, gradB));
+            if (isBreathing) breathing(breathingSpeed);
         } break;
         case 3: {
           rainbow();
+          if (isBreathing) breathing(breathingSpeed);
         } break;
         case 4: {
           runningDots();
+          if (isBreathing) breathing(breathingSpeed);
         } break;
         case 5: {
-          colorCycle();
-          breathing();
+          colorCycle(pulseSpeed);
+          breathing(pulseSpeed);
         }
       }
     } else {
       strip.setBrightness(0);
     }
   }
-    
   strip.show();
   delay(16);
 }
@@ -286,33 +317,31 @@ void rainbow() {
   for (int i = 0; i < NUMLEDS; i++) {
     strip.set(i, mWheel8((int)counter + i * 255 / NUMLEDS));   // counter смещает цвет
   }
-  counter += rainbowSpeed;   // counter имеет тип byte и при достижении 255 сбросится в 0
+  counter += rainbowSpeed;
   if (counter > 255) {
     counter = 0;
   }
 }
-
 void runningDots() {
   static byte counter = 0;
-  // перемотка буфера со сдвигом (иллюзия движения пикселей)
   for (int i = 0; i < NUMLEDS - 1; i++) strip.leds[i] = strip.leds[i + 1];
-
-  // каждый третий вызов - последний пиксель красным, иначе чёрным
   if (counter % 3 == 0) strip.leds[NUMLEDS - 1] = mRGB(dotsR, dotsG, dotsB);
   else strip.leds[NUMLEDS - 1] = mBlack;
   counter++;
-  delay(dotSpeed);   // дополнительная задержка
+  delay(dotSpeed);
 }
-void colorCycle() {
-  static byte counter = 0;
+
+void colorCycle(float speed) {
+  static float counter = 0;
   strip.fill(mWheel8(counter));
-  counter += 2;
+  counter += 1.6f * speed;
+  if (counter > 255) counter = 0;
 }
-void breathing() {
+
+void breathing(float speed) {
   static int dir = 1;
   static int bright = 0;
-  bright += dir * 10;    // 5 - множитель скорости изменения
-
+  bright += dir * 10 * speed;
   if (bright > 255) {
     bright = 255;
     dir = -1;
