@@ -25,6 +25,8 @@ const int arrowDown = 82;
 const int arrowRight = 90;
 const int arrowLeft = 8;
 
+const int okButton = 28;
+
 static bool ON = true;
 
 static float r = 200;
@@ -61,6 +63,8 @@ static float pulseSpeed = 1;
 //BREATHING
 static bool isBreathing = false;
 static float breathingSpeed = 1;
+
+static float timer = 0;
 
 int mode = 1;
 
@@ -115,6 +119,19 @@ void loop() {
       } break;
       case button0: {
        ON = !ON;
+      } break;
+      case okButton: {
+        if (timer == 0) {
+          timer = 1; 
+          strip.fill(0, NUMLEDS, mGreen);
+          strip.show();
+          delay(1000);
+        } else {
+          timer = 0;
+          strip.fill(0, NUMLEDS, mRed);
+          strip.show();
+          delay(1000);
+        }
       }
     }
     strip.setBrightness(bright);
@@ -254,11 +271,11 @@ void loop() {
             if (dotsB < 0) dotsB = 0;
         } break;
         case arrowRight: {
-          dotSpeed += 10;
+          dotSpeed -= 5;
           if (dotSpeed > 3000) dotSpeed = 3000;
         } break;
         case arrowLeft: {
-          dotSpeed -= 10;
+          dotSpeed += 5;
           if (dotSpeed < 10) dotSpeed = 10;
         }
       }
@@ -279,6 +296,14 @@ void loop() {
   }
   if (IrReceiver.isIdle()) {
     if(ON) {
+      if (timer > 0) {
+        timer += 0.0167f;
+        if(timer > 1800) {
+          ON = false;
+          timer = 0;
+        }  
+      }
+      
       if (mode != 6)
         strip.setBrightness(bright);
       switch(mode) {
@@ -301,7 +326,7 @@ void loop() {
         } break;
         case 5: {
           colorCycle(pulseSpeed);
-          breathing(pulseSpeed);
+          if (isBreathing) breathing(pulseSpeed);
         }
       }
     } else {
